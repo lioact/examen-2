@@ -1,0 +1,94 @@
+---
+title: "Examen 2"
+author: "Cerezo García Luis Angel,Rosas Rios Leonardo Daniel"
+date: "2025-04-29"
+output: html_document
+---
+# **Consgina 1**
+
+```{r}
+library(readxl)
+library(dplyr)
+
+BankChurners <- read_excel("BankChurners.xlsx")
+# Agregar variables categóricas al dataframe "banco"
+banco <- BankChurners[, c(
+  "Customer_Age", 
+  "Months_on_book", 
+  "Credit_Limit", 
+  "Total_Trans_Amt",
+  "Attrition_Flag", 
+  "Education_Level", 
+  "Marital_Status", 
+  "Income_Category", 
+  "Card_Category"
+)]
+
+
+```
+
+
+
+```{r}
+# Seleccionar solo las variables numéricas
+cuantitativas <- banco[sapply(banco, is.numeric)]
+
+# Contar cuántos NA hay en cada variable
+colSums(is.na(cuantitativas))
+
+```
+
+```{r}
+# Reemplazar NA con la media de cada columna
+cuantitativas <- lapply(cuantitativas, function(x) {
+  x[is.na(x)] <- mean(x, na.rm = TRUE)
+  return(x)
+})
+
+# Volver a meter los datos limpios al dataframe original
+banco[names(cuantitativas)] <- cuantitativas
+
+# Verificar que ya no hay NA
+colSums(is.na(banco[sapply(banco, is.numeric)]))
+
+```
+
+
+
+```{r}
+# Ver las variables categóricas
+categ <- banco[sapply(banco, is.character)]
+
+# Ver valores únicos para detectar errores
+print(lapply(categ, unique))
+
+```
+```{r}
+
+# Limpiar textos (poner en minúsculas y quitar espacios)
+banco <- banco %>%
+  mutate(across(where(is.character), ~tolower(trimws(.))))
+
+# Reemplazar errores conocidos (ejemplo para tipo_tarjeta)
+banco$tipo_tarjeta <- recode(banco$tipo_tarjeta,
+                             "oroo" = "oro",
+                             "platinno" = "platino")
+
+# Función para sacar la moda (valor más frecuente)
+moda <- function(x) {
+  ux <- unique(x[!is.na(x)])
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Reemplazar NA por la moda
+banco <- banco %>%
+  mutate(across(where(is.character), ~replace(., is.na(.), moda(.))))
+
+# Verificar que ya no hay errores ni NA
+lapply(banco[sapply(banco, is.character)], function(x) {
+  list(valores_unicos = unique(x), na = sum(is.na(x)))
+})
+
+```
+
+
